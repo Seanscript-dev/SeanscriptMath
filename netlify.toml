@@ -1,0 +1,4 @@
+[[redirects]]
+from = "/*"
+to = "/math.html"
+status = 200
