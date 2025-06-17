@@ -178,6 +178,7 @@
         .option-btn.selected {
             border-color: #ffd700;
             background: rgba(255, 215, 0, 0.3);
+            transform: scale(1.02);
         }
 
         .progress-bar {
@@ -234,22 +235,79 @@
             0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
             50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
         }
+
+        .timer {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            margin: 0 auto 15px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .timer.warning {
+            background: rgba(255, 165, 0, 0.3);
+            border-color: rgba(255, 165, 0, 0.5);
+            color: #ffa500;
+        }
+
+        .timer.danger {
+            background: rgba(255, 0, 0, 0.3);
+            border-color: rgba(255, 0, 0, 0.5);
+            color: #ff4444;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-right: 5px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .hint-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-decoration: underline;
+        }
+
+        .hint-text {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
         <!-- Start Screen -->
         <div id="startScreen" class="start-screen">
-            <div class="brand-section" style="margin-bottom: 30px;">
-                <img src="dp2.svg" alt="SeanScript Logo" style="width: 60px; height: 60px; margin-bottom: 10px;">
-                <div style="font-size: 1.8em; font-weight: bold; color: #ffd700; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);">SeanScript</div>
-                <div style="font-size: 0.9em; letter-spacing: 2px; color: rgba(255, 255, 255, 0.8);">DEVELOPMENT</div>
-            </div>
             <div class="header">
                 <h1 class="title">🎯 MathQuest</h1>
                 <p>Challenge your math skills across multiple topics!</p>
             </div>
             <p style="margin: 20px 0;">Topics include: Algebra, Geometry, Statistics, Trigonometry, and more!</p>
+            <div style="margin-bottom: 20px;">
+                <label for="difficultySelect" style="display: block; margin-bottom: 10px;">Select Difficulty:</label>
+                <select id="difficultySelect" style="padding: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.2); color: white; border: none; width: 100%;">
+                    <option value="all">All Difficulties</option>
+                    <option value="easy">Easy Only</option>
+                    <option value="medium">Medium Only</option>
+                    <option value="hard">Hard Only</option>
+                </select>
+            </div>
             <button class="start-btn" onclick="startGame()">Start Adventure</button>
         </div>
 
@@ -278,14 +336,21 @@
                 <div class="progress-fill" id="progressFill"></div>
             </div>
 
+            <div class="timer" id="timer">30</div>
+
             <div class="question-area">
-                <div class="difficulty-badge" id="difficultyBadge">EASY</div>
+                <div>
+                    <span class="difficulty-badge" id="difficultyBadge">EASY</span>
+                    <span class="category-badge" id="categoryBadge">ALGEBRA</span>
+                </div>
                 <div class="question" id="question">Ready to start?</div>
+                <button class="hint-btn" id="hintBtn" onclick="showHint()">Need a hint?</button>
+                <div class="hint-text hidden" id="hintText"></div>
             </div>
 
             <div class="feedback" id="feedback"></div>
 
-            <div id="inputSection" class="answer-section">
+            <div id="inputSection" class="answer-section hidden">
                 <input type="number" class="answer-input" id="answerInput" placeholder="Enter your answer">
                 <button class="submit-btn" id="submitBtn" onclick="checkAnswer()">Submit</button>
             </div>
@@ -316,12 +381,18 @@
             questionsAnswered: 0,
             correctAnswers: 0,
             totalQuestions: 15,
-            isGameActive: false
+            isGameActive: false,
+            selectedOption: null,
+            timeLeft: 30,
+            timerInterval: null,
+            streakHistory: [],
+            selectedDifficulty: 'all'
         };
 
         const questionTypes = [
             {
                 type: 'algebra',
+                category: 'Algebra',
                 difficulty: 'easy',
                 generate: () => {
                     const a = Math.floor(Math.random() * 10) + 1;
@@ -331,55 +402,17 @@
                     return {
                         question: `Solve for x: ${a}x + ${b} = ${result}`,
                         answer: x,
-                        type: 'input'
+                        type: 'input',
+                        hint: `Try isolating x by subtracting ${b} from both sides first, then dividing by ${a}.`
                     };
                 }
             },
             {
-                type: 'geometry',
-                difficulty: 'easy',
-                generate: () => {
-                    const radius = Math.floor(Math.random() * 10) + 1;
-                    const area = Math.PI * radius * radius;
-                    return {
-                        question: `What is the area of a circle with radius ${radius}? (Use π ≈ 3.14)`,
-                        answer: Math.round(area * 100) / 100,
-                        type: 'input'
-                    };
-                }
-            },
-            {
-                type: 'statistics',
+                type: 'algebra',
+                category: 'Algebra',
                 difficulty: 'medium',
                 generate: () => {
-                    const numbers = Array.from({length: 5}, () => Math.floor(Math.random() * 20) + 1);
-                    const mean = numbers.reduce((a, b) => a + b) / numbers.length;
-                    return {
-                        question: `Find the mean of: ${numbers.join(', ')}`,
-                        answer: Math.round(mean * 100) / 100,
-                        type: 'input'
-                    };
-                }
-            },
-            {
-                type: 'trigonometry',
-                difficulty: 'hard',
-                generate: () => {
-                    const angles = [0, 30, 45, 60, 90];
-                    const angle = angles[Math.floor(Math.random() * angles.length)];
-                    const values = {0: 0, 30: 0.5, 45: 0.707, 60: 0.866, 90: 1};
-                    return {
-                        question: `What is sin(${angle}°)? (Round to 3 decimal places)`,
-                        answer: values[angle],
-                        type: 'input'
-                    };
-                }
-            },
-            {
-                type: 'quadratic',
-                difficulty: 'medium',
-                generate: () => {
-                    const a = Math.floor(Math.random() * 3) + 1;
+                    const a = Math.floor(Math.random() * 5) + 1;
                     const b = Math.floor(Math.random() * 10) + 1;
                     const c = Math.floor(Math.random() * 10) + 1;
                     const options = [
@@ -392,7 +425,164 @@
                         question: `Which is the correct quadratic formula for ${a}x² + ${b}x + ${c} = 0?`,
                         answer: 0,
                         options: options,
-                        type: 'multiple'
+                        type: 'multiple',
+                        hint: 'The quadratic formula is x = [-b ± √(b² - 4ac)] / 2a'
+                    };
+                }
+            },
+            {
+                type: 'geometry',
+                category: 'Geometry',
+                difficulty: 'easy',
+                generate: () => {
+                    const radius = Math.floor(Math.random() * 10) + 1;
+                    const area = Math.PI * radius * radius;
+                    return {
+                        question: `What is the area of a circle with radius ${radius}? (Use π ≈ 3.14)`,
+                        answer: Math.round(area * 100) / 100,
+                        type: 'input',
+                        hint: `The formula for area of a circle is πr² where r is the radius.`
+                    };
+                }
+            },
+            {
+                type: 'geometry',
+                category: 'Geometry',
+                difficulty: 'medium',
+                generate: () => {
+                    const base = Math.floor(Math.random() * 10) + 5;
+                    const height = Math.floor(Math.random() * 10) + 5;
+                    const hypotenuse = Math.sqrt(base * base + height * height).toFixed(2);
+                    const options = [
+                        hypotenuse,
+                        (base + height).toFixed(2),
+                        (base * height).toFixed(2),
+                        (base + height / 2).toFixed(2)
+                    ];
+                    // Shuffle options
+                    for (let i = options.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [options[i], options[j]] = [options[j], options[i]];
+                    }
+                    const correctIndex = options.indexOf(hypotenuse);
+                    return {
+                        question: `A right triangle has legs of ${base} and ${height}. What is the length of the hypotenuse?`,
+                        answer: correctIndex,
+                        options: options,
+                        type: 'multiple',
+                        hint: 'Use the Pythagorean theorem: a² + b² = c² where c is the hypotenuse.'
+                    };
+                }
+            },
+            {
+                type: 'statistics',
+                category: 'Statistics',
+                difficulty: 'medium',
+                generate: () => {
+                    const numbers = Array.from({length: 5}, () => Math.floor(Math.random() * 20) + 1);
+                    const mean = numbers.reduce((a, b) => a + b) / numbers.length;
+                    return {
+                        question: `Find the mean of: ${numbers.join(', ')}`,
+                        answer: Math.round(mean * 100) / 100,
+                        type: 'input',
+                        hint: 'Mean is calculated by adding all numbers and dividing by the count of numbers.'
+                    };
+                }
+            },
+            {
+                type: 'statistics',
+                category: 'Statistics',
+                difficulty: 'hard',
+                generate: () => {
+                    const numbers = Array.from({length: 5}, () => Math.floor(Math.random() * 20) + 1).sort((a, b) => a - b);
+                    const median = numbers[2];
+                    const options = [
+                        median,
+                        numbers[0],
+                        numbers[4],
+                        Math.round(numbers.reduce((a, b) => a + b) / numbers.length)
+                    ];
+                    // Shuffle options
+                    for (let i = options.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [options[i], options[j]] = [options[j], options[i]];
+                    }
+                    const correctIndex = options.indexOf(median);
+                    return {
+                        question: `What is the median of: ${numbers.join(', ')}?`,
+                        answer: correctIndex,
+                        options: options,
+                        type: 'multiple',
+                        hint: 'Median is the middle number when all numbers are arranged in order.'
+                    };
+                }
+            },
+            {
+                type: 'trigonometry',
+                category: 'Trigonometry',
+                difficulty: 'hard',
+                generate: () => {
+                    const angles = [0, 30, 45, 60, 90];
+                    const angle = angles[Math.floor(Math.random() * angles.length)];
+                    const values = {0: 0, 30: 0.5, 45: 0.707, 60: 0.866, 90: 1};
+                    return {
+                        question: `What is sin(${angle}°)? (Round to 3 decimal places)`,
+                        answer: values[angle],
+                        type: 'input',
+                        hint: 'Remember the special angles: sin(0°)=0, sin(30°)=0.5, sin(45°)=√2/2≈0.707, sin(60°)=√3/2≈0.866, sin(90°)=1'
+                    };
+                }
+            },
+            {
+                type: 'trigonometry',
+                category: 'Trigonometry',
+                difficulty: 'medium',
+                generate: () => {
+                    const angle = Math.floor(Math.random() * 4) * 30 + 30; // 30, 60, 90, 120
+                    const values = {30: 0.5, 60: 0.866, 90: 1, 120: 0.866};
+                    const options = [
+                        values[angle],
+                        Math.random().toFixed(3),
+                        (1 - values[angle]).toFixed(3),
+                        (values[angle] * 2).toFixed(3)
+                    ].sort(() => Math.random() - 0.5);
+                    const correctIndex = options.indexOf(values[angle]);
+                    return {
+                        question: `What is sin(${angle}°)? (Round to 3 decimal places)`,
+                        answer: correctIndex,
+                        options: options,
+                        type: 'multiple',
+                        hint: 'Remember the unit circle values for common angles.'
+                    };
+                }
+            },
+            {
+                type: 'algebra',
+                category: 'Algebra',
+                difficulty: 'hard',
+                generate: () => {
+                    const a = Math.floor(Math.random() * 3) + 1;
+                    const b = Math.floor(Math.random() * 10) + 1;
+                    const c = Math.floor(Math.random() * 10) + 1;
+                    const discriminant = b * b - 4 * a * c;
+                    let solution;
+                    
+                    if (discriminant > 0) {
+                        const root1 = (-b + Math.sqrt(discriminant)) / (2 * a);
+                        const root2 = (-b - Math.sqrt(discriminant)) / (2 * a);
+                        solution = `x = ${root1.toFixed(2)} or x = ${root2.toFixed(2)}`;
+                    } else if (discriminant === 0) {
+                        const root = -b / (2 * a);
+                        solution = `x = ${root.toFixed(2)} (double root)`;
+                    } else {
+                        solution = "No real solutions";
+                    }
+                    
+                    return {
+                        question: `Solve the quadratic equation: ${a}x² + ${b}x + ${c} = 0`,
+                        answer: solution,
+                        type: 'input',
+                        hint: 'Use the quadratic formula: x = [-b ± √(b² - 4ac)] / 2a'
                     };
                 }
             }
@@ -407,7 +597,12 @@
                 questionsAnswered: 0,
                 correctAnswers: 0,
                 totalQuestions: 15,
-                isGameActive: true
+                isGameActive: true,
+                selectedOption: null,
+                timeLeft: 30,
+                timerInterval: null,
+                streakHistory: [],
+                selectedDifficulty: document.getElementById('difficultySelect').value
             };
             
             document.getElementById('startScreen').classList.add('hidden');
@@ -416,6 +611,46 @@
             
             updateDisplay();
             generateQuestion();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(gameState.timerInterval);
+            gameState.timeLeft = 30;
+            document.getElementById('timer').textContent = gameState.timeLeft;
+            document.getElementById('timer').className = 'timer';
+            
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeLeft--;
+                document.getElementById('timer').textContent = gameState.timeLeft;
+                
+                if (gameState.timeLeft <= 10) {
+                    document.getElementById('timer').className = 'timer warning';
+                }
+                if (gameState.timeLeft <= 5) {
+                    document.getElementById('timer').className = 'timer danger';
+                }
+                
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    timeUp();
+                }
+            }, 1000);
+        }
+
+        function timeUp() {
+            if (!gameState.isGameActive) return;
+            
+            document.getElementById('feedback').textContent = '⏰ Time\'s up!';
+            document.getElementById('feedback').className = 'feedback incorrect';
+            
+            gameState.questionsAnswered++;
+            gameState.streak = 0;
+            updateDisplay();
+            
+            setTimeout(() => {
+                generateQuestion();
+            }, 2000);
         }
 
         function generateQuestion() {
@@ -424,22 +659,40 @@
                 return;
             }
 
-            const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+            // Filter questions by selected difficulty if not 'all'
+            let filteredQuestions = questionTypes;
+            if (gameState.selectedDifficulty !== 'all') {
+                filteredQuestions = questionTypes.filter(q => q.difficulty === gameState.selectedDifficulty);
+            }
+
+            // If no questions match the filter (unlikely), fall back to all
+            if (filteredQuestions.length === 0) {
+                filteredQuestions = questionTypes;
+            }
+
+            const questionType = filteredQuestions[Math.floor(Math.random() * filteredQuestions.length)];
             gameState.currentQuestion = questionType.generate();
             
             document.getElementById('question').textContent = gameState.currentQuestion.question;
             document.getElementById('difficultyBadge').textContent = questionType.difficulty.toUpperCase();
             document.getElementById('difficultyBadge').className = `difficulty-badge ${questionType.difficulty}`;
+            document.getElementById('categoryBadge').textContent = questionType.category.toUpperCase();
             document.getElementById('feedback').textContent = '';
+            document.getElementById('hintText').textContent = gameState.currentQuestion.hint || 'No hint available';
+            document.getElementById('hintText').classList.add('hidden');
             
-            // Clear previous input
+            // Clear previous input and selection
             document.getElementById('answerInput').value = '';
+            gameState.selectedOption = null;
             
             if (gameState.currentQuestion.type === 'multiple') {
                 setupMultipleChoice();
             } else {
                 setupInput();
             }
+            
+            // Reset timer for new question
+            startTimer();
         }
 
         function setupInput() {
@@ -459,15 +712,22 @@
                 const button = document.createElement('button');
                 button.className = 'option-btn';
                 button.textContent = option;
-                button.onclick = () => selectOption(index, button);
+                button.onclick = () => {
+                    // Clear previous selection
+                    document.querySelectorAll('.option-btn').forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                    // Select this option
+                    button.classList.add('selected');
+                    gameState.selectedOption = index;
+                };
                 optionsContainer.appendChild(button);
             });
         }
 
-        function selectOption(index, button) {
-            document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
-            button.classList.add('selected');
-            gameState.selectedOption = index;
+        function showHint() {
+            const hintText = document.getElementById('hintText');
+            hintText.classList.toggle('hidden');
         }
 
         function checkAnswer() {
@@ -477,32 +737,57 @@
             let isCorrect = false;
             
             if (gameState.currentQuestion.type === 'multiple') {
-                if (gameState.selectedOption === undefined) return;
+                if (gameState.selectedOption === null) {
+                    document.getElementById('feedback').textContent = 'Please select an option!';
+                    document.getElementById('feedback').className = 'feedback incorrect';
+                    return;
+                }
                 userAnswer = gameState.selectedOption;
                 isCorrect = userAnswer === gameState.currentQuestion.answer;
             } else {
                 userAnswer = parseFloat(document.getElementById('answerInput').value);
-                if (isNaN(userAnswer)) return;
+                if (isNaN(userAnswer)) {
+                    document.getElementById('feedback').textContent = 'Please enter a valid number!';
+                    document.getElementById('feedback').className = 'feedback incorrect';
+                    return;
+                }
                 
-                const tolerance = 0.01;
-                isCorrect = Math.abs(userAnswer - gameState.currentQuestion.answer) <= tolerance;
+                // For input questions, handle both number and string answers
+                if (typeof gameState.currentQuestion.answer === 'number') {
+                    const tolerance = 0.01;
+                    isCorrect = Math.abs(userAnswer - gameState.currentQuestion.answer) <= tolerance;
+                } else {
+                    // For string answers (like in the hard algebra question)
+                    isCorrect = userAnswer.toString().toLowerCase() === 
+                               gameState.currentQuestion.answer.toString().toLowerCase();
+                }
             }
             
+            clearInterval(gameState.timerInterval);
             gameState.questionsAnswered++;
             
             if (isCorrect) {
+                // Calculate time bonus (up to 5 points for quick answers)
+                const timeBonus = Math.floor(gameState.timeLeft / 6);
+                
                 gameState.correctAnswers++;
                 gameState.streak++;
-                gameState.score += 10 * gameState.level + (gameState.streak > 3 ? 5 : 0);
-                document.getElementById('feedback').textContent = '🎉 Correct!';
+                gameState.score += 10 * gameState.level + timeBonus + (gameState.streak > 3 ? 5 : 0);
+                document.getElementById('feedback').textContent = '🎉 Correct!' + (timeBonus > 0 ? ` +${timeBonus} time bonus!` : '');
                 document.getElementById('feedback').className = 'feedback correct';
                 
                 if (gameState.streak > 0 && gameState.streak % 5 === 0) {
                     showAchievement(`🔥 ${gameState.streak} Streak!`);
                 }
             } else {
+                gameState.streakHistory.push(gameState.streak);
                 gameState.streak = 0;
-                document.getElementById('feedback').textContent = `❌ Incorrect. Answer: ${gameState.currentQuestion.answer}`;
+                if (gameState.currentQuestion.type === 'multiple') {
+                    const correctOption = gameState.currentQuestion.options[gameState.currentQuestion.answer];
+                    document.getElementById('feedback').textContent = `❌ Incorrect. Correct answer: ${correctOption}`;
+                } else {
+                    document.getElementById('feedback').textContent = `❌ Incorrect. Answer: ${gameState.currentQuestion.answer}`;
+                }
                 document.getElementById('feedback').className = 'feedback incorrect';
             }
             
@@ -512,7 +797,7 @@
             }
             
             updateDisplay();
-            gameState.selectedOption = undefined;
+            gameState.selectedOption = null;
             
             setTimeout(() => {
                 generateQuestion();
@@ -529,10 +814,11 @@
         }
 
         function showAchievement(text) {
+            const feedback = document.getElementById('feedback');
             const achievement = document.createElement('div');
             achievement.className = 'achievement';
             achievement.textContent = text;
-            document.getElementById('feedback').appendChild(achievement);
+            feedback.appendChild(achievement);
             
             setTimeout(() => {
                 achievement.remove();
@@ -541,27 +827,35 @@
 
         function endGame() {
             gameState.isGameActive = false;
+            clearInterval(gameState.timerInterval);
             document.getElementById('gameScreen').classList.add('hidden');
             document.getElementById('gameOverScreen').classList.remove('hidden');
             
             const percentage = Math.round((gameState.correctAnswers / gameState.totalQuestions) * 100);
+            const bestStreak = Math.max(...gameState.streakHistory, gameState.streak);
             
             document.getElementById('finalStats').innerHTML = `
                 <h2>Final Score: ${gameState.score}</h2>
                 <p>Questions Correct: ${gameState.correctAnswers}/${gameState.totalQuestions} (${percentage}%)</p>
                 <p>Highest Level Reached: ${gameState.level}</p>
-                <p>Best Streak: ${Math.max(...(gameState.streakHistory || [gameState.streak]))}</p>
+                <p>Best Streak: ${bestStreak}</p>
             `;
             
             let achievements = [];
             if (percentage === 100) achievements.push("🏆 Perfect Score!");
             if (percentage >= 80) achievements.push("⭐ Math Expert!");
             if (gameState.score >= 200) achievements.push("💯 High Scorer!");
+            if (bestStreak >= 5) achievements.push(`🔥 ${bestStreak} Streak Master!`);
+            if (gameState.level >= 3) achievements.push(`🚀 Level ${gameState.level} Achiever!`);
             
             if (achievements.length > 0) {
                 document.getElementById('achievements').innerHTML = `
                     <h3>Achievements Unlocked:</h3>
                     ${achievements.map(a => `<div class="achievement">${a}</div>`).join('')}
+                `;
+            } else {
+                document.getElementById('achievements').innerHTML = `
+                    <p>Keep practicing to unlock achievements!</p>
                 `;
             }
         }
