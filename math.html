@@ -325,8 +325,131 @@
             width: 100%;
             height: 100vh;
         }
+        /* Responsive Styles */
+@media (max-width: 768px) {
+    .game-container {
+        padding: 20px;
+        width: 95%;
+        margin: 10px;
+    }
+
+    .title {
+        font-size: 1.8em;
+    }
+
+    .stats {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .question {
+        font-size: 1.4em;
+    }
+
+    .answer-section {
+        flex-direction: column;
+    }
+
+    .answer-input, .submit-btn {
+        width: 100%;
+    }
+
+    .submit-btn {
+        margin-top: 10px;
+    }
+
+    .options {
+        grid-template-columns: 1fr !important;
+    }
+
+    .option-btn {
+        padding: 12px;
+        font-size: 1em;
+    }
+
+    .start-btn, .restart-btn {
+        padding: 15px 25px;
+        font-size: 1.2em;
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    .timer {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9em;
+    }
+
+    .difficulty-badge, .category-badge {
+        font-size: 0.6em;
+        padding: 3px 8px;
+    }
+
+    .header {
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-container {
+        padding: 15px;
+    }
+
+    .title {
+        font-size: 1.5em;
+        margin-top: 20px;
+    }
+
+    .question {
+        font-size: 1.2em;
+    }
+
+    .feedback {
+        font-size: 1.1em;
+    }
+
+    .back-btn {
+        top: -5px;
+        left: 0;
+    }
+
+    .question-area {
+        padding: 15px;
+        min-height: 100px;
+    }
+
+    .answer-input {
+        padding: 12px;
+        font-size: 1em;
+    }
+
+    .submit-btn {
+        padding: 12px;
+        font-size: 1em;
+    }
+}
+
+/* Additional responsive improvements */
+@media (max-height: 700px) {
+    .game-container {
+        max-height: 95vh;
+        overflow-y: auto;
+    }
+}
+
+/* Make sure inputs are readable on mobile */
+input, button, select, textarea {
+    font-size: 16px !important;
+}
     </style>
 </head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <body>
     <svg class="background-svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
         <path fill="#4f46e5" fill-opacity="1" d="M0,96L48,106.7C96,117,192,139,288,149.3C384,160,480,160,576,154.7C672,149,768,139,864,154.7C960,171,1056,213,1152,197.3C1248,181,1344,107,1392,69.3L1440,32L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
